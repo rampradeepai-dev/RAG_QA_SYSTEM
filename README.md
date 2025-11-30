@@ -102,10 +102,10 @@ pytest -q
 ```
 
 #### Tests include:
-<li>Mocked ingestion</li>
-<li>Mocked LLM responses</li>
-<li>PDF upload via TestClient</li>
-<li>Validation error checks</li>
+- Mocked ingestion
+- Mocked LLM responses
+- PDF upload via TestClient
+- Validation error checks
 
 ---
 
