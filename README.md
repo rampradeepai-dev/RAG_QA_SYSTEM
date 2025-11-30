@@ -61,7 +61,6 @@ RAG_QA_SYSTEM/<br>
 
 ```bash
 git clone https://github.com/rampradeepai-dev/RAG_QA_SYSTEM.git
-cd RAG_QA_SYSTEM/RAG_QA_SYSTEM
 ```
 
 ### 2. Create & activate virtual environment
