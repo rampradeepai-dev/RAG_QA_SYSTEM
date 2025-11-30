@@ -12,7 +12,7 @@ app = FastAPI(
     description="Backend service for document ingestion and RAG-based Q&A.",
 )
 
-# Allow local frontends / tools to call this API easily
+# Allow local frontends / tools to call this API easily 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
