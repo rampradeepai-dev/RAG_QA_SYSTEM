@@ -59,17 +59,23 @@ def ask_question(question, document_id, top_k):
 # ----------------------------
 # Gradio UI Layout
 # ----------------------------
-with gr.Blocks(title="RAG QA System (Gradio Frontend)") as demo:
-    gr.Markdown("# 📄 RAG QA System — Gradio Frontend")
+with gr.Blocks(title="RAG QA System") as demo:
+    gr.HTML("""
+        <style>
+            footer, .footer, #footer {
+                display: none !important;
+            }
+        </style>
+    """)
+    gr.Markdown("# 📄 RAG QA System")
     gr.Markdown(
         "Upload a PDF → Embed & Store → Ask Questions\n"
-        "This UI talks to your FastAPI backend."
     )
 
     with gr.Tab("📤 Upload Document"):
         pdf_input = gr.File(label="Upload PDF", file_types=[".pdf"])
         upload_button = gr.Button("Upload & Process")
-        upload_status = gr.Textbox(label="Status")
+        upload_status = gr.Textbox(label="Status", lines=2)
         document_id_box = gr.Textbox(label="Document ID (auto-filled)", interactive=False)
 
         upload_button.click(
