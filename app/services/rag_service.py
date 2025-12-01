@@ -39,6 +39,13 @@ class RAGService:
 
         chunks = self.text_splitter.split_documents(docs)
 
+        if not chunks:
+            # Pages exist but no text (e.g. scanned image-only PDF)
+            raise ValueError(
+                f"No text chunks created from this file. "
+                "This often happens with scanned/image-only PDFs without a text layer."
+            )
+        
         vectordb = self._get_vectordb()
         vectordb.add_documents(chunks)
         vectordb.persist()
