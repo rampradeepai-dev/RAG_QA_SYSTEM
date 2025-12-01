@@ -12,3 +12,7 @@ class QueryRequest(BaseModel):
 
 class QueryResponse(BaseModel):
     answer: str
+
+class DocumentItem(BaseModel):
+    document_id: str
+    filename: str

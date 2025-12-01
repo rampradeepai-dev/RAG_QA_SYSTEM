@@ -1,49 +1,69 @@
+from gradio import Blocks, HTML, Markdown, Files, Button, Textbox, Slider, Dropdown, State
 import gradio as gr
 import requests
 import os
 
-# ----------------------------
-# Backend API URL
-# ----------------------------
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
-
 UPLOAD_ENDPOINT = f"{API_URL}/documents"
 QUERY_ENDPOINT = f"{API_URL}/query"
 
+def upload_pdfs(pdf_files, existing_ids):
+    if not pdf_files:
+        return "❌ No files selected", existing_ids, gr.update(choices=existing_ids)
 
-# ----------------------------
-# Upload PDF → receive document_id
-# ----------------------------
-def upload_pdf(pdf_file):
-    if pdf_file is None:
-        return "❌ No file selected", None
+    messages = []
+    updated_ids = existing_ids.copy()
 
-    try:
-        with open(pdf_file.name, "rb") as f:
-            files = {"file": (pdf_file.name, f, "application/pdf")}
-            response = requests.post(UPLOAD_ENDPOINT, files=files)
+    for pdf_file in pdf_files:
+        try:
+            filename = os.path.basename(pdf_file.name)
+            # Open as real binary to send proper PDF bytes
+            with open(pdf_file.name, "rb") as f:
+                files = {"file": (filename, f, "application/pdf")}
+                response = requests.post(UPLOAD_ENDPOINT, files=files)
 
-        if response.status_code == 200:
-            data = response.json()
-            doc_id = data["document_id"]
-            return f"✅ Uploaded successfully! Document ID:\n{doc_id}", doc_id
-        else:
-            return f"❌ Upload failed:\n{response.text}", None
-    except Exception as e:
-        return f"❌ Error:\n{str(e)}", None
+            if response.status_code == 200:
+                data = response.json()
+                doc_id = data["document_id"]
+                # Store (label + value)
+                updated_ids.append({
+                    "label": f"{filename} ({doc_id})",
+                    "value": doc_id
+                })
+                messages.append(f"✅ {filename} → Document ID: {doc_id}")
+            else:
+                messages.append(f"❌ {filename} → Upload failed: {response.text}")
+        except Exception as e:
+            messages.append(f"❌ {filename} → Error: {str(e)}")
+
+    status_text = "\n".join(messages)
+
+    # Always keep placeholder at the top
+    dropdown_choices = ["-- select --"] + [item["label"] for item in updated_ids]
+
+    dropdown_update = gr.update(
+        choices=dropdown_choices,
+        value="-- select --",   # ALWAYS default to placeholder
+    )
+
+    return status_text, updated_ids, dropdown_update, gr.update(value="")
 
 
-# ----------------------------
-# Ask a question → get answer
-# ----------------------------
-def ask_question(question, document_id, top_k):
-    if not document_id:
-        return "❌ Upload a document first."
+def ask_question(question, dropdown_label, top_k, id_state):
+    if dropdown_label == "-- select --" or not dropdown_label:
+        return "❌ Please select a document."
 
+    # Convert UI label → doc_id
+    match = next((item for item in id_state if item["label"] == dropdown_label), None)
+
+    if not match:
+        return "❌ Invalid document selection."
+
+    document_id = match["value"]  # the real uuid
     payload = {
         "question": question,
         "document_id": document_id,
-        "top_k": int(top_k),
+        "top_k": int(top_k)
     }
 
     try:
@@ -55,45 +75,79 @@ def ask_question(question, document_id, top_k):
     except Exception as e:
         return f"❌ Error:\n{str(e)}"
 
+def fetch_existing_docs():
+    try:
+        resp = requests.get(f"{API_URL}/documents/index")
+        if resp.status_code != 200:
+            return [], gr.update(choices=["-- select --"], value="-- select --")
 
-# ----------------------------
-# Gradio UI Layout
-# ----------------------------
-with gr.Blocks(title="RAG QA System") as demo:
-    gr.HTML("""
+        items = resp.json()  # list of {document_id, filename}
+        state = [
+            {
+                "label": f"{item['filename']} ({item['document_id']})",
+                "value": item["document_id"],
+            }
+            for item in items
+        ]
+        if not state:
+            return [], gr.update(
+                choices=["-- select --"],
+                value="-- select --"
+            )
+        choices = ["-- select --"] + [s["label"] for s in state]
+        return state, gr.update(choices=choices, value="-- select --")
+    except Exception:
+        return [], gr.update(choices=["-- select --"], value="-- select --")
+
+
+with Blocks(title="RAG QA System") as demo:
+    HTML("""
         <style>
             footer, .footer, #footer {
                 display: none !important;
             }
         </style>
     """)
-    gr.Markdown("# 📄 RAG QA System")
-    gr.Markdown(
-        "Upload a PDF → Embed & Store → Ask Questions\n"
-    )
+    Markdown("# 📄 RAG QA System")
+    Markdown("Upload PDFs → Build your vector store → Ask questions")
 
-    with gr.Tab("📤 Upload Document"):
-        pdf_input = gr.File(label="Upload PDF", file_types=[".pdf"])
-        upload_button = gr.Button("Upload & Process")
-        upload_status = gr.Textbox(label="Status", lines=2)
-        document_id_box = gr.Textbox(label="Document ID (auto-filled)", interactive=False)
+    doc_ids_state = State([])
 
-        upload_button.click(
-            upload_pdf,
-            inputs=[pdf_input],
-            outputs=[upload_status, document_id_box]
+    with gr.Tab("📤 Upload Documents"):
+        pdf_input = Files(label="Upload PDF(s)", file_types=[".pdf"])
+        upload_button = Button("Upload & Process")
+        upload_status = Textbox(label="Status", lines=8)
+        
+    with gr.Tab("❓ Ask Questions"):
+        doc_id_dropdown = gr.Dropdown(
+            label="Select Document",
+            choices=["-- select --"],
+            value="-- select --",
+            interactive=True,
         )
 
-    with gr.Tab("❓ Ask Questions"):
-        question_box = gr.Textbox(label="Your Question")
-        top_k_slider = gr.Slider(1, 10, value=4, label="Top-K Context Chunks")
-        ask_button = gr.Button("Get Answer")
-        answer_box = gr.Textbox(label="Answer", lines=6)
+        question_box = Textbox(label="Your Question")
+        top_k_slider = Slider(1, 10, value=4, label="Top-K Chunks")
+        ask_button = Button("Get Answer")
+        answer_box = Textbox(label="Answer", lines=6)
 
         ask_button.click(
             ask_question,
-            inputs=[question_box, document_id_box, top_k_slider],
+            inputs=[question_box, doc_id_dropdown, top_k_slider, doc_ids_state],
             outputs=[answer_box]
         )
+
+    # Load existing docs whenever the page loads / refreshes
+    demo.load(
+        fetch_existing_docs,
+        inputs=None,
+        outputs=[doc_ids_state, doc_id_dropdown],
+    )
+
+    upload_results = upload_button.click(
+        upload_pdfs,
+        inputs=[pdf_input, doc_ids_state],
+        outputs=[upload_status, doc_ids_state, doc_id_dropdown, question_box],
+    )
 
 demo.launch(server_name="127.0.0.1", server_port=7860)

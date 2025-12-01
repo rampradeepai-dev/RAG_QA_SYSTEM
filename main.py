@@ -3,8 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 import uuid
 
-from app.models import IngestResponse, QueryRequest, QueryResponse
+from app.models import IngestResponse, QueryRequest, QueryResponse, DocumentItem
 from app.services.rag_service import RAGService
+from typing import List
+import json
+
 
 app = FastAPI(
     title="Document RAG Q&A Service",
@@ -21,9 +24,9 @@ app.add_middleware(
 )
 
 rag_service = RAGService()
-UPLOAD_DIR = Path("uploaded_docs")
-UPLOAD_DIR.mkdir(exist_ok=True)
-
+INDEX_DIR = Path("index_db")
+INDEX_DIR.mkdir(exist_ok=True)
+INDEX_PATH = INDEX_DIR / "index.json"
 
 @app.get("/health")
 def health_check():
@@ -38,7 +41,7 @@ async def ingest_document(file: UploadFile = File(...)):
     try:
         # Save uploaded file
         doc_id = f"{uuid.uuid4()}"
-        file_path = UPLOAD_DIR / f"{doc_id}.pdf"
+        file_path = INDEX_DIR / f"{doc_id}.pdf"
 
         with file_path.open("wb") as f:
             content = await file.read()
@@ -47,11 +50,20 @@ async def ingest_document(file: UploadFile = File(...)):
         # Ingest into vector store
         stored_doc_id = rag_service.ingest_document(str(file_path), document_id=doc_id)
 
+        # update index.json with filename + doc_id
+        index = load_index()
+        index.append({"document_id": stored_doc_id, "filename": file.filename})
+        save_index(index)
+
+        file_path.unlink(missing_ok=True)
+
+            
         return IngestResponse(
             document_id=stored_doc_id,
             message="Document ingested successfully.",
         )
     except Exception as e:
+        file_path.unlink(missing_ok=True)
         raise HTTPException(status_code=500, detail=f"Ingestion failed: {e}")
 
 
@@ -69,7 +81,24 @@ async def query_rag(payload: QueryRequest):
         return QueryResponse(answer=answer)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Query failed: {e}")
-    
+
+@app.get("/documents/index", response_model=List[DocumentItem])
+def list_documents():
+    index = load_index()
+    return [DocumentItem(**item) for item in index]
+
+def load_index() -> List[dict]:
+    if INDEX_PATH.exists():
+        with INDEX_PATH.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+
+def save_index(entries: List[dict]) -> None:
+    with INDEX_PATH.open("w", encoding="utf-8") as f:
+        json.dump(entries, f, indent=2)
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
