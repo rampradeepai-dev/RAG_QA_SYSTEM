@@ -47,7 +47,7 @@ RAG_QA_SYSTEM/<br>
 │ ├── test_rag_basic.py # RAG unit tests<br>
 │<br>
 │── .venv/ # Virtual environment (ignored)<br>
-│── uploaded_docs/ # Stored PDFs<br>
+│── index_db/ # Documents List<br>
 │── chroma_db/ # Vector database<br>
 │── requirements.txt<br>
 │── .env<br>
