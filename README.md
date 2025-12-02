@@ -85,7 +85,7 @@ VECTOR_DB_DIR=chroma_db
 ### 5. Run FastAPI backend
 In First Terminal
 ```bash
-py main.py
+uvicorn main:app --reload
 ```
 
 ### 6. Run Gradio frontend
@@ -166,17 +166,15 @@ POST /query
 
 ## 📸 Example UI Screens
 ### **Upload Document**
-<img width="1039" height="795" alt="RAG_QA_1" src="https://github.com/user-attachments/assets/932194e3-ec8b-4b7b-9af1-70a93254ee11" />
+<img width="1301" height="989" alt="image" src="https://github.com/user-attachments/assets/ed572440-b689-4e32-9512-ca6d1c5ff33b" />
 <br/>
-<img width="1041" height="793" alt="RAG_QA_2" src="https://github.com/user-attachments/assets/33d8eed9-5d6e-44d1-86c1-008801a56c78" />
+<img width="1308" height="990" alt="image" src="https://github.com/user-attachments/assets/febad373-f886-4c32-a469-4524ac73a9e8" />
 <br/>
 
 ### **Ask A Question**
-<img width="1041" height="792" alt="RAG_QA_3" src="https://github.com/user-attachments/assets/a965dc8e-79a9-44dd-af2a-9e54bf8149ed" />
-
+<img width="1305" height="994" alt="image" src="https://github.com/user-attachments/assets/45a7d2d8-40eb-4304-97fc-2c97d33cd6fc" />
 
 ## 🤝 Contributing
-
 Thanks for the opportunity.
 
 
