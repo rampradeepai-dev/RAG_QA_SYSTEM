@@ -3,7 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 import uuid
 
-from app.models import IngestResponse, QueryRequest, QueryResponse, DocumentItem
+from app.models import (
+    IngestResponse,
+    QueryRequest,
+    QueryResponse,
+    DocumentItem,
+)
+
 from app.services.rag_service import RAGService
 from typing import List
 import json
@@ -15,7 +21,7 @@ app = FastAPI(
     description="Backend service for document ingestion and RAG-based Q&A.",
 )
 
-# Allow local frontends / tools to call this API easily 
+# Allow local frontends / tools to call this API easily
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,6 +34,7 @@ INDEX_DIR = Path("index_db")
 INDEX_DIR.mkdir(exist_ok=True)
 INDEX_PATH = INDEX_DIR / "index.json"
 
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
@@ -36,7 +43,12 @@ def health_check():
 @app.post("/documents", response_model=IngestResponse)
 async def ingest_document(file: UploadFile = File(...)):
     if file.content_type != "application/pdf":
-        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Only PDF files are supported."
+            ),
+        )
 
     try:
         # Save uploaded file
@@ -48,7 +60,10 @@ async def ingest_document(file: UploadFile = File(...)):
             f.write(content)
 
         # Ingest into vector store
-        stored_doc_id = rag_service.ingest_document(str(file_path), document_id=doc_id)
+        stored_doc_id = rag_service.ingest_document(
+            str(file_path),
+            document_id=doc_id,
+        )
 
         # update index.json with filename + doc_id
         index = load_index()
@@ -57,7 +72,6 @@ async def ingest_document(file: UploadFile = File(...)):
 
         file_path.unlink(missing_ok=True)
 
-            
         return IngestResponse(
             document_id=stored_doc_id,
             message="Document ingested successfully.",
@@ -70,7 +84,10 @@ async def ingest_document(file: UploadFile = File(...)):
 @app.post("/query", response_model=QueryResponse)
 async def query_rag(payload: QueryRequest):
     if not payload.question.strip():
-        raise HTTPException(status_code=400, detail="Question must not be empty.")
+        raise HTTPException(
+            status_code=400,
+            detail="Question must not be empty.",
+        )
 
     try:
         answer = rag_service.query(
@@ -82,10 +99,12 @@ async def query_rag(payload: QueryRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Query failed: {e}")
 
+
 @app.get("/documents/index", response_model=List[DocumentItem])
 def list_documents():
     index = load_index()
     return [DocumentItem(**item) for item in index]
+
 
 def load_index() -> List[dict]:
     if INDEX_PATH.exists():
