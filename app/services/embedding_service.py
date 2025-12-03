@@ -2,6 +2,7 @@
 from langchain_openai import OpenAIEmbeddings
 from app.config import settings
 
+
 def get_embedding_model():
     """
     Returns an embedding model for Chroma.

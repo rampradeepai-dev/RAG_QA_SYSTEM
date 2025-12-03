@@ -29,7 +29,11 @@ class RAGService:
             persist_directory=self.persist_directory,
         )
 
-    def ingest_document(self, file_path: str, document_id: Optional[str] = None) -> str:
+    def ingest_document(
+        self,
+        file_path: str,
+        document_id: Optional[str] = None,
+    ) -> str:
         loader = PyPDFLoader(file_path)
         docs = loader.load()
 
@@ -42,17 +46,23 @@ class RAGService:
         if not chunks:
             # Pages exist but no text (e.g. scanned image-only PDF)
             raise ValueError(
-                f"No text chunks created from this file. "
-                "This often happens with scanned/image-only PDFs without a text layer."
+                "No text chunks created from this file."
+                "This often happens with scanned/image-only PDFs "
+                "without a text layer."
             )
-        
+
         vectordb = self._get_vectordb()
         vectordb.add_documents(chunks)
         vectordb.persist()
 
         return doc_id
 
-    def query(self, question: str, document_id: Optional[str] = None, k: int = 4) -> str:
+    def query(
+        self,
+        question: str,
+        document_id: Optional[str] = None,
+        k: int = 4,
+    ) -> str:
         vectordb = self._get_vectordb()
 
         search_kwargs = {"k": k}
@@ -69,4 +79,8 @@ class RAGService:
         )
 
         result = qa_chain.invoke({"query": question})
-        return result["result"] if isinstance(result, dict) and "result" in result else result
+        return (
+            result["result"]
+            if isinstance(result, dict) and "result" in result
+            else result
+        )
