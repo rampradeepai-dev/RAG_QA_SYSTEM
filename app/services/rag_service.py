@@ -4,7 +4,7 @@ from typing import Optional
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_classic.chains import RetrievalQA
 
 from app.config import settings
@@ -53,7 +53,6 @@ class RAGService:
 
         vectordb = self._get_vectordb()
         vectordb.add_documents(chunks)
-        vectordb.persist()
 
         return doc_id
 
