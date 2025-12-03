@@ -1,4 +1,13 @@
-from gradio import Blocks, HTML, Markdown, Files, Button, Textbox, Slider, Dropdown, State
+from gradio import (
+    Blocks,
+    HTML,
+    Markdown,
+    Files,
+    Button,
+    Textbox,
+    Slider,
+    State,
+)
 import gradio as gr
 import requests
 import os
@@ -11,7 +20,13 @@ FETCH_ENDPOINT = f"{API_URL}/documents/index"
 # 🔹 How many documents per page in the dropdown
 DOCS_PER_PAGE = 50
 
-def upload_pdfs(pdf_files, existing_ids, current_total_pages, current_page):
+
+def upload_pdfs(
+    pdf_files,
+    existing_ids,
+    current_total_pages,
+    current_page,
+):
     if not pdf_files:
         # Do not change dropdown or pagination if nothing uploaded
         return (
@@ -44,14 +59,24 @@ def upload_pdfs(pdf_files, existing_ids, current_total_pages, current_page):
                 })
                 messages.append(f"✅ {filename} → Document ID: {doc_id}")
             else:
-                messages.append(f"❌ {filename} → Upload failed: {response.text}")
+                messages.append(
+                    f"❌ {filename} → Upload failed: "
+                    f"{response.text}"
+                )
         except Exception as e:
             messages.append(f"❌ {filename} → Error: {str(e)}")
 
     status_text = "\n".join(messages)
 
     # 🔹 Recompute total pages based on updated_ids
-    total_pages = max(1, (len(updated_ids) + DOCS_PER_PAGE - 1) // DOCS_PER_PAGE)
+    total_pages = max(
+        1,
+        (
+            len(updated_ids)
+            + DOCS_PER_PAGE
+            - 1
+        ) // DOCS_PER_PAGE,
+    )
 
     # 🔹 Normalize current_page within bounds
     try:
@@ -64,13 +89,29 @@ def upload_pdfs(pdf_files, existing_ids, current_total_pages, current_page):
     if page > total_pages:
         page = total_pages
 
-    # 🔹 Use pagination to get dropdown update and corrected page (ignore search_clear here)
-    dropdown_update, fixed_page, _ = paginate_docs(page, updated_ids, total_pages)
+    # Use pagination to get dropdown update and corrected page
+    # Ignore search_clear here
+    (
+        dropdown_update,
+        fixed_page,
+        _,
+    ) = paginate_docs(
+        page,
+        updated_ids,
+        total_pages,
+    )
 
     # Clear question box after upload
     question_reset = gr.update(value="")
 
-    return status_text, updated_ids, dropdown_update, question_reset, total_pages, fixed_page
+    return (
+        status_text,
+        updated_ids,
+        dropdown_update,
+        question_reset,
+        total_pages,
+        fixed_page,
+    )
 
 
 def ask_question(question, dropdown_label, top_k, id_state):
@@ -78,7 +119,14 @@ def ask_question(question, dropdown_label, top_k, id_state):
         return "❌ Please select a document."
 
     # Convert UI label → doc_id
-    match = next((item for item in id_state if item["label"] == dropdown_label), None)
+    match = next(
+        (
+            item
+            for item in id_state
+            if item["label"] == dropdown_label
+        ),
+        None,
+    )
 
     if not match:
         return "❌ Invalid document selection."
@@ -104,16 +152,33 @@ def fetch_existing_docs():
     try:
         resp = requests.get(FETCH_ENDPOINT)
         if resp.status_code != 200:
-            return [], gr.update(choices=["-- select --"], value="-- select --"), 1
+            return (
+                [],
+                gr.update(
+                    choices=["-- select --"],
+                    value="-- select --",
+                ),
+                1,
+            )
 
         items = resp.json()
         state = [
-            {"label": f"{item['filename']} ({item['document_id']})", "value": item["document_id"]}
+            {
+                "label": f"{item['filename']} ({item['document_id']})",
+                "value": item["document_id"],
+            }
             for item in items
         ]
 
         if not state:
-            return [], gr.update(choices=["-- select --"], value="-- select --"), 1
+            return (
+                [],
+                gr.update(
+                    choices=["-- select --"],
+                    value="-- select --",
+                ),
+                1,
+            )
 
         total_pages = max(1, (len(state) + DOCS_PER_PAGE - 1) // DOCS_PER_PAGE)
 
@@ -122,9 +187,9 @@ def fetch_existing_docs():
 
         return state, dropdown, total_pages
 
-
-    except:
+    except Exception:
         return [], gr.update(choices=["-- select --"], value="-- select --"), 1
+
 
 def filter_docs(search_text, id_state):
     """
@@ -155,6 +220,7 @@ def filter_docs(search_text, id_state):
     choices = ["-- select --"] + results
     return gr.update(choices=choices, value="-- select --")
 
+
 def paginate_docs(page, id_state, total_pages):
     """
     Paginate safely. If page > total_pages or < 1, fix it and
@@ -179,12 +245,26 @@ def paginate_docs(page, id_state, total_pages):
 
     # clamp within valid bounds
     if total_pages is None:
-        total_pages = max(1, (len(id_state) + DOCS_PER_PAGE - 1) // DOCS_PER_PAGE)
+        total_pages = max(
+            1,
+            (
+                len(id_state)
+                + DOCS_PER_PAGE
+                - 1
+            ) // DOCS_PER_PAGE,
+        )
 
     try:
         total_pages = int(total_pages)
     except Exception:
-        total_pages = max(1, (len(id_state) + DOCS_PER_PAGE - 1) // DOCS_PER_PAGE)
+        total_pages = max(
+            1,
+            (
+                len(id_state)
+                + DOCS_PER_PAGE
+                - 1
+            ) // DOCS_PER_PAGE,
+        )
 
     if page < 1:
         page = 1
@@ -210,6 +290,7 @@ def paginate_docs(page, id_state, total_pages):
         gr.update(value=""),    # 🔹 clear Search Documents
     )
 
+
 with Blocks(title="RAG QA System") as demo:
     HTML("""
         <style>
@@ -227,12 +308,20 @@ with Blocks(title="RAG QA System") as demo:
         pdf_input = Files(label="Upload PDF(s)", file_types=[".pdf"])
         upload_button = Button("Upload & Process")
         upload_status = Textbox(label="Status", lines=8)
-        
+
     with gr.Tab("❓ Ask Questions"):
         # 🔹 Pagination controls
-        total_pages = gr.Number(label="Total Pages", value=1, interactive=False, precision=0)
+        total_pages = gr.Number(
+            label="Total Pages",
+            value=1,
+            interactive=False,
+            precision=0,
+        )
         page_number = gr.Number(label="Page", value=1, precision=0)
-        search_box = Textbox(label="Search Documents", placeholder="Type keyword…")
+        search_box = Textbox(
+            label="Search Documents",
+            placeholder="Type keyword…",
+        )
 
         doc_id_dropdown = gr.Dropdown(
             label="Select Document",
@@ -248,11 +337,17 @@ with Blocks(title="RAG QA System") as demo:
 
         ask_button.click(
             ask_question,
-            inputs=[question_box, doc_id_dropdown, top_k_slider, doc_ids_state],
+            inputs=[
+                question_box,
+                doc_id_dropdown,
+                top_k_slider,
+                doc_ids_state,
+            ],
             outputs=[answer_box]
         )
 
-        # When page changes, re-paginate and also correct the page value if needed
+        # When the page changes, re-paginate
+        # and correct the page value if needed.
         page_number.change(
             fn=paginate_docs,
             inputs=[page_number, doc_ids_state, total_pages],
@@ -277,7 +372,14 @@ with Blocks(title="RAG QA System") as demo:
     upload_results = upload_button.click(
         upload_pdfs,
         inputs=[pdf_input, doc_ids_state, total_pages, page_number],
-        outputs=[upload_status, doc_ids_state, doc_id_dropdown, question_box, total_pages, page_number],
+        outputs=[
+            upload_status,
+            doc_ids_state,
+            doc_id_dropdown,
+            question_box,
+            total_pages,
+            page_number,
+        ],
     )
 
 
