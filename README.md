@@ -175,7 +175,7 @@ POST /query
 <img width="1305" height="994" alt="image" src="https://github.com/user-attachments/assets/45a7d2d8-40eb-4304-97fc-2c97d33cd6fc" />
 
 ## 🤝 Contributing
-Thanks for the opportunity.
+Contributions are welcome and appreciated 🙌
 
 
 
