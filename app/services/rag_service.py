@@ -11,6 +11,12 @@ from app.config import settings
 from app.services.llm_service import get_llm
 from app.services.embedding_service import get_embedding_model
 
+import tiktoken
+
+tokenizer = tiktoken.get_encoding("cl100k_base")
+
+def count_tokens(text: str) -> int:
+    return len(tokenizer.encode(text))
 
 class RAGService:
     def __init__(self, persist_directory: Path | str = settings.VECTOR_DB_DIR):
@@ -20,7 +26,7 @@ class RAGService:
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=200,
             chunk_overlap=20,
-            length_function=len,
+            length_function=count_tokens,
         )
 
     def _get_vectordb(self) -> Chroma:
