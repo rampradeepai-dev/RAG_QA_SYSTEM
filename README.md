@@ -9,7 +9,7 @@ This project implements a complete **Retrieval-Augmented Generation (RAG)** work
 - **PyPDFLoader** for PDF ingestion  
 - **Gradio UI** (optional) for interactive Q&A
 
-Upload a PDF → it gets embedded → ask questions → the system retrieves relevant text and generates an answer grounded in the document.
+Upload a PDFs → it gets embedded → ask questions → the system retrieves relevant text and generates an answer grounded in the document.
 
 ---
 
