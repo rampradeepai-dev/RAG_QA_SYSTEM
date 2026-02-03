@@ -90,12 +90,18 @@ async def query_rag(payload: QueryRequest):
         )
 
     try:
-        answer = rag_service.query(
+        result = rag_service.query(
             question=payload.question,
             document_id=payload.document_id,
             k=payload.top_k,
         )
-        return QueryResponse(answer=answer)
+        return QueryResponse(
+            question=result["question"],
+            answer=result["answer"],
+            confidence=result["confidence"],
+            sources=result["sources"],
+            rerankedsources=result["rerankedsources"],
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Query failed: {e}")
 

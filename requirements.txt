@@ -10,3 +10,4 @@ python-dotenv
 gradio
 pytest
 langchain-chroma
+sentence-transformers

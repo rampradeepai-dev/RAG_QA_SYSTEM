@@ -5,7 +5,7 @@ from app.config import settings
 
 def get_llm():
     """
-    Returns a LangChain ChatOpenAI model for use in RetrievalQA.
+    Returns a LangChain ChatOpenAI model for use in LCEL.
     OPENAI_API_KEY must be set in the environment.
     """
     llm = ChatOpenAI(

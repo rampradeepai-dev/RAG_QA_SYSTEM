@@ -11,6 +11,7 @@ from gradio import (
 import gradio as gr
 import requests
 import os
+import textwrap
 
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 UPLOAD_ENDPOINT = f"{API_URL}/documents"
@@ -141,12 +142,45 @@ def ask_question(question, dropdown_label, top_k, id_state):
     try:
         response = requests.post(QUERY_ENDPOINT, json=payload)
         if response.status_code == 200:
-            return response.json()["answer"]
+            data = response.json()
+            sources_md = build_sources_md(data.get("sources", []))
+            reranked_sources_md = build_sources_md(data.get("rerankedsources", []))
+            answer_text = clean_answer(data["answer"])
+
+            return f"""
+                📌 Answer
+                {answer_text}
+
+                📊 Confidence
+                {round(data["confidence"] * 100, 2)}%
+                """
         else:
             return f"❌ Query failed:\n{response.text}"
     except Exception as e:
         return f"❌ Error:\n{str(e)}"
 
+def build_sources_md(sources):
+    lines = []
+    for s in sources:
+        line = (
+            f"- **{s.get('document_id', 'Unknown')} "
+            f"(page {s.get('page', 'N/A')})**: "
+            f"{s.get('snippet', '').replace('\n', ' ').strip()}"
+        )
+        lines.append(line)
+    return "\n".join(lines)
+
+def clean_answer(text: str) -> str:
+    if not text:
+        return ""
+
+    # Remove excessive newlines
+    text = text.replace("\n\n\n", "\n\n")
+
+    # Convert single newlines to spaces (prevents layout break)
+    text = " ".join(line.strip() for line in text.splitlines())
+
+    return text.strip()
 
 def fetch_existing_docs():
     try:
